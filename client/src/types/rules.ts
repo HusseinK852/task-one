@@ -1,19 +1,19 @@
 export interface ConditionT {
-  _id: string;
+  _id?: string;
   field: string;
   operator: string;
   value: any;
 }
 
 export interface ActionT {
-  _id: string;
+  _id?: string;
   type: string;
   algorithm?: string;
   key_size?: number;
 }
 
-export interface RoleT {
-  _id: string;
+export interface RuleT {
+  _id?: string;
   id: string;
   name: string;
   description: string;
@@ -23,6 +23,6 @@ export interface RoleT {
   enabled: boolean;
 }
 
-export interface RolesStateT {
-  roles: RoleT[];
+export interface RulesStateT {
+  rules: RuleT[];
 }

@@ -6,12 +6,12 @@ import xss from "xss";
 
 import AppError from "./utils/appError";
 import globalErrorHandler from "./controllers/errorController";
-import roleRoutes from "./routes/RoleRoutes";
+import ruleRoutes from "./routes/RuleRoutes";
 
 const app: Application = express();
 
 const corsOptions = {
-  origin: "http://localhost:5173",
+  origin: "http://localhost:3000",
   credentials: true,
 };
 
@@ -32,7 +32,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-app.use("/api/rules", roleRoutes);
+app.use("/api/rules", ruleRoutes);
 
 app.all("*", (req: Request, res: Response, next: NextFunction) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
