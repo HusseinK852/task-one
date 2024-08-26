@@ -4,8 +4,7 @@
       <v-col cols="3">
         <SideBar />
       </v-col>
-      <v-col class="d-flex flex-column justify-center align-center text-center" cols="9">
-        <router-view name="nav_bar" />
+      <v-col cols="9">
         <router-view />
       </v-col>
     </v-row>

@@ -7,6 +7,8 @@
       <v-spacer />
       <v-btn @click="saveAllData">SAVE</v-btn>
       <v-btn @click="validate">VALIDATE</v-btn>
+      <v-btn @click="deleteRule">DELETE</v-btn>
+      <v-btn @click="enabledRule">{{ editableRule.enabled ? 'Disable' : 'Enable' }}</v-btn>
     </v-toolbar>
     <v-main>
       <router-view :editable-rule="editableRule" />
@@ -17,7 +19,7 @@
 <script lang="ts">
   import { defineComponent, ref, watch } from 'vue'
   import { useRulesStore } from '../stores/useRulesStore'
-  import { useRoute } from 'vue-router'
+  import { useRoute, useRouter } from 'vue-router'
   import type { RuleT } from '../types/rules'
 
   export default defineComponent({
@@ -25,11 +27,13 @@
       const editableRule = ref<RuleT | null>(null)
       const rulesStore = useRulesStore()
       const route = useRoute()
+      const router = useRouter()
 
       const fetchRule = async (ruleId: string) => {
         if (ruleId) {
           try {
             editableRule.value = await rulesStore.fetchRule(ruleId)
+            console.log(editableRule.value)
           } catch (error) {
             console.error('Failed to fetch rule:', error)
           }
@@ -69,10 +73,32 @@
         }
       }
 
+      function deleteRule () {
+        if (editableRule.value) {
+          rulesStore.deleteRule(editableRule.value.id).then(() => {
+            editableRule.value = null
+            router.push('/')
+          })
+        } else {
+          console.error('No rule to delete')
+        }
+      }
+
+      function enabledRule () {
+        if (editableRule.value) {
+          editableRule.value.enabled = !editableRule.value.enabled
+          rulesStore.editRule(editableRule.value).then(updatedRule => {
+            editableRule.value = updatedRule
+          })
+        }
+      }
+
       return {
         editableRule,
         saveAllData,
         validate,
+        deleteRule,
+        enabledRule,
       }
     },
   })

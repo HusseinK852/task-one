@@ -8,16 +8,7 @@
         <v-row v-for="(action, index) in localActions" :key="action._id" class="mb-3">
           <v-col cols="12">
             <v-card outlined>
-              <v-card-title>
-                <v-icon color="primary" small>mdi-action</v-icon>
-                <span class="ml-2">{{ action.type }}</span>
-                <v-spacer />
-                <v-btn icon @click="toggleEditing(index)">
-                  <v-icon v-if="isEditing[index]">mdi-content-save</v-icon>
-                  <v-icon v-else>mdi-pencil</v-icon>
-                </v-btn>
-              </v-card-title>
-              <v-card-subtitle v-if="!isEditing[index]">
+              <v-card-text v-if="!isEditing[index]">
                 <div>
                   <span>Type: {{ action.type }}</span><br>
                   <span v-if="action.algorithm">Algorithm: {{ action.algorithm }}</span><br>
@@ -30,7 +21,10 @@
                     Key Size: {{ action.key_size }}
                   </span>
                 </div>
-              </v-card-subtitle>
+                <v-btn icon @click="toggleEditing(index)">
+                  <v-icon>{{ isEditing[index] ? 'mdi-content-save' : 'mdi-pencil' }}</v-icon>
+                </v-btn>
+              </v-card-text>
               <v-card-subtitle v-else>
                 <v-text-field
                   v-model="localActions[index].type"
@@ -38,7 +32,6 @@
                   hide-details
                   label="Type"
                   solo
-                  @blur="toggleEditing(index)"
                 />
                 <v-text-field
                   v-model="localActions[index].algorithm"
@@ -46,7 +39,6 @@
                   hide-details
                   label="Algorithm"
                   solo
-                  @blur="toggleEditing(index)"
                 />
                 <v-text-field
                   v-model="localActions[index].key_size"
@@ -57,9 +49,17 @@
                   hide-details
                   label="Key Size"
                   solo
-                  @blur="toggleEditing(index)"
                 />
               </v-card-subtitle>
+              <v-card-actions v-if="isEditing[index]">
+                <v-spacer />
+                <v-btn color="success" @click="toggleEditing(index)">
+                  <v-icon left>mdi-check</v-icon> Save
+                </v-btn>
+                <v-btn color="error" @click="deleteAction(index)">
+                  <v-icon left>mdi-delete</v-icon> Delete
+                </v-btn>
+              </v-card-actions>
             </v-card>
           </v-col>
         </v-row>
@@ -89,21 +89,26 @@
             />
             <v-text-field
               v-model="newAction.key_size"
-              :class="{
-                'border-red-500': isNaN(Number(newAction.key_size)),
-              }"
+              :class="{'border-red-500': isNaN(Number(newAction.key_size)),}"
               dense
               hide-details
               label="Key Size"
               solo
             />
-            <v-btn color="success" :disabled="!newAction.type || !newAction.algorithm || isNaN(Number(newAction.key_size))" @click="saveNewAction">
-              <v-icon left>mdi-check</v-icon> Save
-            </v-btn>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn color="success" :disabled="!newAction.type || !newAction.algorithm || isNaN(Number(newAction.key_size))" @click="saveNewAction">
+                <v-icon left>mdi-check</v-icon> Save
+              </v-btn>
+              <v-btn color="error" @click="resetNewAction">
+                <v-icon left>mdi-cancel</v-icon> Cancel
+              </v-btn>
+            </v-card-actions>
           </v-card-subtitle>
         </v-card>
       </v-col>
     </v-row>
+
   </v-container>
 </template>
 
@@ -124,6 +129,13 @@
       const localActions = ref([...props.modelValue])
       const isEditing = ref(Array(localActions.value.length).fill(false))
       const isAddingNew = ref(false)
+
+      watch(
+        () => props.modelValue,
+        newValue => {
+          localActions.value = newValue
+        }
+      )
 
       const newAction = ref<ActionT>({
         type: '',
@@ -150,6 +162,11 @@
         }
       }
 
+      const deleteAction = (index: number) => {
+        localActions.value.splice(index, 1)
+        emit('update:modelValue', [...localActions.value])
+      }
+
       const resetNewAction = () => {
         isAddingNew.value = false
         newAction.value = { type: '', algorithm: '', key_size: 0 }
@@ -163,6 +180,8 @@
         toggleEditing,
         addAction,
         saveNewAction,
+        deleteAction,
+        resetNewAction,
       }
     },
   })
