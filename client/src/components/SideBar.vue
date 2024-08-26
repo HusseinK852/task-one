@@ -11,6 +11,15 @@
           <v-list-item-title>{{ rule.name }}</v-list-item-title>
         </v-list-item>
       </v-list>
+      <div class="d-flex justify-center">
+        <v-btn
+          class="custom-btn-width"
+          color="primary"
+          @click="navigateToAddRule"
+        >
+          Add Rule
+        </v-btn>
+      </div>
     </v-navigation-drawer>
   </v-app>
 </template>
@@ -31,6 +40,10 @@
         router.push(`/rule/${ruleId}`)
       }
 
+      const navigateToAddRule = () => {
+        router.push('/rule/add-rule')
+      }
+
       onMounted(() => {
         rulesStore.fetchRules().catch(error => {
           console.error('Error fetching rules on component mount:', error)
@@ -40,6 +53,7 @@
       return {
         allRules,
         navigateToRule,
+        navigateToAddRule,
       }
     },
   })
@@ -54,5 +68,8 @@
     margin: 1rem;
     background: white;
     color: black;
+  }
+  .custom-btn-width {
+    width: 270px;
   }
 </style>

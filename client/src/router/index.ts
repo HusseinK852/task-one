@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home from '@/pages/Home.vue'
-import Rule from '@/pages/Rule.vue'
 import HomeLayout from '@/layouts/default.vue'
 import RuleLayout from '@/layouts/Role.vue'
+import Home from '@/pages/Home.vue'
+import Rule from '@/pages/Rule.vue'
+import AddRule from '@/pages/AddRule.vue'
 
 const routes = [
   {
@@ -17,6 +18,11 @@ const routes = [
         path: '',
         name: 'home',
         component: Home,
+      },
+      {
+        path: 'add-rule',
+        name: 'add-rule',
+        component: AddRule,
       },
       {
         path: ':ruleId',

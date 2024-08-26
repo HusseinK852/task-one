@@ -61,7 +61,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, watch } from 'vue'
+  import { defineComponent } from 'vue'
   import EditableField from '../components/EditableField.vue'
   import ConditionsList from '../components/ConditionsList.vue'
   import ActionsList from '../components/ActionsList.vue'
