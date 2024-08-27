@@ -5,24 +5,26 @@ import {
   getRuleById,
   updateRuleById,
   deleteRuleById,
-  validateRule,
-  addConditionToRule,
-  addActionToRule,
+  validateRuleData,
+  addItemToRule,
+  removeItemFromRule
 } from "../controllers/RuleController";
 
 const router = express.Router();
 
-router.route("/").get(getAllRules).post(createNewRule);
+router.route("/")
+  .get(getAllRules)
+  .post(createNewRule);
 
-router
-  .route("/:id")
+router.route("/:id")
   .get(getRuleById)
   .put(updateRuleById)
   .delete(deleteRuleById);
 
-router.route("/validate").post(validateRule);
+router.post("/validate", validateRuleData);
 
-router.route("/:id/add-condition").post(addConditionToRule);
-router.route("/:id/add-action").post(addActionToRule);
+router.post("/:id/:field/add", addItemToRule);
+
+router.post("/:id/:field/remove", removeItemFromRule);
 
 export default router;

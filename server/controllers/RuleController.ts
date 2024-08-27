@@ -1,11 +1,16 @@
+import mongoose from "mongoose";
 import { Request, Response, NextFunction } from "express";
 import catchAsync from "../utils/catchAsync";
 import AppError from "../utils/appError";
-import Rule from "../models/RuleModel";
+import { validateRuleMiddleware, RuleModel, ruleSchemaJoi } from "../models/RuleModel";
+
+const validateRule = validateRuleMiddleware;
+
+type RuleField = "triggers" | "conditions" | "actions" | "onFailure" | "config";
 
 export const getAllRules = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const rules = await Rule.find();
+    const rules = await RuleModel.find().populate('triggers conditions actions onFailure config');
     res.status(200).json({
       status: "success",
       results: rules.length,
@@ -14,20 +19,20 @@ export const getAllRules = catchAsync(
   }
 );
 
-export const createNewRule = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const newRule = new Rule(req.body);
-    await newRule.save();
+export const createNewRule = [
+  validateRule,
+  catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const newRule = await RuleModel.create(req.body);
     res.status(201).json({
       status: "success",
       data: newRule,
     });
-  }
-);
+  })
+];
 
 export const getRuleById = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const rule = await Rule.findOne({ id: req.params.id });
+    const rule = await RuleModel.findById(req.params.id).populate('triggers conditions actions onFailure config');
     if (!rule) {
       return next(new AppError("No rule found with that ID", 404));
     }
@@ -38,28 +43,32 @@ export const getRuleById = catchAsync(
   }
 );
 
-export const updateRuleById = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const rule = await Rule.findOneAndUpdate({ id: req.params.id }, req.body, {
-      new: true,
-      runValidators: true,
-    });
-    if (!rule) {
+export const updateRuleById = [
+  validateRule,
+  catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const updatedRule = await RuleModel.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    ).populate('triggers conditions actions onFailure config');
+
+    if (!updatedRule) {
       return next(new AppError("No rule found with that ID", 404));
     }
     res.status(200).json({
       status: "success",
-      data: rule,
+      data: updatedRule,
     });
-  }
-);
+  })
+];
 
 export const deleteRuleById = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    const rule = await Rule.findOneAndDelete({ id: req.params.id });
-    if (!rule) {
+    const deletedRule = await RuleModel.findByIdAndDelete(req.params.id);
+    if (!deletedRule) {
       return next(new AppError("No rule found with that ID", 404));
     }
+
     res.status(204).json({
       status: "success",
       data: null,
@@ -67,69 +76,52 @@ export const deleteRuleById = catchAsync(
   }
 );
 
-export const validateRule = catchAsync(
+export const validateRuleData = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
-    // const { id } = req.body;
-
-    // const existingRule = await Rule.findOne({ id });
-
-    // if (existingRule) {
-    //   return res.status(400).json({
-    //     status: "fail",
-    //     message: `A rule with ID ${id} already exists.`,
-    //   });
-    // }
-
-    const rule = new Rule(req.body);
-    await rule.validate();
+    const ruleData = req.body;
+    
+    const { error } = ruleSchemaJoi.validate(ruleData, { abortEarly: false });
+    
+    if (error) {
+      return next(new AppError(`Validation failed: ${error.details.map(e => e.message).join(", ")}`, 400));
+    }
 
     res.status(200).json({
       status: "success",
-      data: rule,
+      message: "Rule is valid",
     });
   }
 );
 
-export const addConditionToRule = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-    const { condition } = req.body;
-
-    const rule = await Rule.findOne({ id });
-
+const modifyArrayField = (operation: 'add' | 'remove') => {
+  return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const rule = await RuleModel.findById(req.params.id).populate('triggers conditions actions onFailure config');
     if (!rule) {
       return next(new AppError("No rule found with that ID", 404));
     }
 
-    rule.conditions.push(condition);
+    const field = req.params.field as RuleField;
+    const itemId = req.body.itemId;
 
-    await rule.save();
-
-    res.status(200).json({
-      status: "success",
-      data: rule,
-    });
-  }
-);
-
-export const addActionToRule = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-    const { action } = req.body;
-
-    const rule = await Rule.findOne({ id });
-
-    if (!rule) {
-      return next(new AppError("No rule found with that ID", 404));
+    if (!rule[field]) {
+      return next(new AppError(`Field ${field} not found in the rule`, 400));
     }
 
-    rule.actions.push(action);
+    if (operation === 'add') {
+      (rule[field] as mongoose.Types.Array<any>).push(itemId);
+    } else if (operation === 'remove') {
+      (rule[field] as mongoose.Types.Array<any>).pull(itemId);
+    } else {
+      return next(new AppError("Invalid operation", 400));
+    }
 
     await rule.save();
-
     res.status(200).json({
       status: "success",
       data: rule,
     });
-  }
-);
+  });
+};
+
+export const addItemToRule = modifyArrayField('add');
+export const removeItemFromRule = modifyArrayField('remove');

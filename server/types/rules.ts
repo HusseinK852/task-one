@@ -1,27 +1,41 @@
-export interface Condition {
-  field: string;
-  operator:
-    | "equals"
-    | "greater_than"
-    | "less_than"
-    | "not_equals"
-    | "greater_or_equal"
-    | "less_or_equal";
-  value: string | number | boolean;
+import { Document } from "mongoose";
+
+export interface Condition extends Document {
+    name: string;
+    description?: string;
+    expression: string;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
-export interface Action {
-  type: string;
-  algorithm?: string;
-  key_size?: number;
+export interface Trigger extends Document {
+  name: string;
+  description?: string;
+  eventType: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isActive: boolean;
+}
+
+export interface Action extends Document {
+  name: string;
+  description?: string;
+  command: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Config extends Document {
+  key: string;
+  value: any;
 }
 
 export interface Rule extends Document {
-  id: string;
   name: string;
-  description: string;
+  triggers: Trigger[];
   conditions: Condition[];
   actions: Action[];
-  priority: number;
+  onFailure: Action[];
+  config: Config[];
   enabled: boolean;
 }

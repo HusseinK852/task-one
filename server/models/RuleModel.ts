@@ -1,107 +1,89 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 import Joi, { ValidationError } from "joi";
-import type { Rule, Condition, Action } from "../types/rules";
-
-const conditionSchemaJoi = Joi.object({
-  field: Joi.string().required(),
-  operator: Joi.string()
-    .valid(
-      "equals",
-      "greater_than",
-      "less_than",
-      "not_equals",
-      "greater_or_equal",
-      "less_or_equal"
-    )
-    .required(),
-  value: Joi.alternatives()
-    .try(Joi.string(), Joi.number(), Joi.boolean())
-    .required(),
-});
-
-const actionSchemaJoi = Joi.object({
-  type: Joi.string().required(),
-  algorithm: Joi.string().optional(),
-  key_size: Joi.number().optional(),
-});
-
-const ruleSchemaJoi = Joi.object({
-  id: Joi.string().required(),
-  name: Joi.string().required(),
-  description: Joi.string().required(),
-  conditions: Joi.array().items(conditionSchemaJoi).required(),
-  actions: Joi.array().items(actionSchemaJoi).required(),
-  priority: Joi.number().required(),
-  enabled: Joi.boolean().required(),
-});
-
-const ConditionSchema = new Schema<Condition>({
-  field: {
-    type: String,
-    required: true,
-  },
-  operator: {
-    type: String,
-    required: true,
-    enum: [
-      "equals",
-      "greater_than",
-      "less_than",
-      "not_equals",
-      "greater_or_equal",
-      "less_or_equal",
-    ],
-  },
-  value: {
-    type: Schema.Types.Mixed,
-    required: true,
-  },
-});
-
-const ActionSchema = new Schema<Action>({
-  type: {
-    type: String,
-    required: true,
-  },
-  algorithm: {
-    type: String,
-  },
-  key_size: {
-    type: Number,
-  },
-});
+import type { Rule } from "../types/rules";
 
 const RuleSchema = new Schema<Rule>({
-  id: {
-    type: String,
-    required: true,
-    unique: true,
-  },
   name: {
     type: String,
     required: true,
   },
-  description: {
-    type: String,
+  triggers: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Trigger',
     required: true,
-  },
-  conditions: [ConditionSchema],
-  actions: [ActionSchema],
-  priority: {
-    type: Number,
+  }],
+  conditions: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Condition',
     required: true,
-  },
+  }],
+  actions: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Action',
+    required: true,
+  }],
+  onFailure: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Action',
+    required: true,
+  }],
+  config: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Config',
+    required: true,
+  }],
   enabled: {
     type: Boolean,
-    required: true,
-  },
+    default: false,
+  }
+});
+
+RuleSchema.pre('save', async function (next) {
+  const rule = this as Document & Rule;
+
+  await rule.populate('triggers conditions actions onFailure config');
+
+  next();
+});
+
+const ruleSchemaJoi = Joi.object({
+  name: Joi.string().required().messages({
+    'string.base': `"name" should be a type of 'text'`,
+    'string.empty': `"name" cannot be an empty field`,
+    'any.required': `"name" is a required field`
+  }),
+  triggers: Joi.array().items(Joi.string().regex(/^[0-9a-fA-F]{24}$/)).required().messages({
+    'array.base': `"triggers" should be an array`,
+    'any.required': `"triggers" is a required field`,
+    'string.pattern.base': `"triggers" must contain valid ObjectId strings`
+  }),
+  conditions: Joi.array().items(Joi.string().regex(/^[0-9a-fA-F]{24}$/)).required().messages({
+    'array.base': `"conditions" should be an array`,
+    'any.required': `"conditions" is a required field`,
+    'string.pattern.base': `"conditions" must contain valid ObjectId strings`
+  }),
+  actions: Joi.array().items(Joi.string().regex(/^[0-9a-fA-F]{24}$/)).required().messages({
+    'array.base': `"actions" should be an array`,
+    'any.required': `"actions" is a required field`,
+    'string.pattern.base': `"actions" must contain valid ObjectId strings`
+  }),
+  onFailure: Joi.array().items(Joi.string().regex(/^[0-9a-fA-F]{24}$/)).required().messages({
+    'array.base': `"onFailure" should be an array`,
+    'any.required': `"onFailure" is a required field`,
+    'string.pattern.base': `"onFailure" must contain valid ObjectId strings`
+  }),
+  config: Joi.array().items(Joi.string().regex(/^[0-9a-fA-F]{24}$/)).required().messages({
+    'array.base': `"config" should be an array`,
+    'any.required': `"config" is a required field`,
+    'string.pattern.base': `"config" must contain valid ObjectId strings`
+  })
 });
 
 const validateRule = (ruleData: Partial<Rule>) => {
   return ruleSchemaJoi.validate(ruleData, { abortEarly: false });
 };
 
-export const validateRuleMiddleware = (
+const validateRuleMiddleware = (
   req: any,
   res: any,
   next: () => void
@@ -115,4 +97,6 @@ export const validateRuleMiddleware = (
   next();
 };
 
-export default mongoose.model<Rule>("Rule", RuleSchema);
+const RuleModel = mongoose.model<Rule>("Rule", RuleSchema);
+
+export { ruleSchemaJoi, validateRuleMiddleware, RuleModel };

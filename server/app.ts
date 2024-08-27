@@ -7,6 +7,10 @@ import xss from "xss";
 import AppError from "./utils/appError";
 import globalErrorHandler from "./controllers/errorController";
 import ruleRoutes from "./routes/RuleRoutes";
+import ActionRoutes from "./routes/ActionRoutes"
+import ConditionRoutes from "./routes/ConditionRoutes"
+import ConfigRoutes from "./routes/ConfigRoutes"
+import TriggerRoutes from "./routes/TriggerRoutes"
 
 const app: Application = express();
 
@@ -33,6 +37,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use("/api/rules", ruleRoutes);
+app.use("/api/action", ActionRoutes)
+app.use("/api/condition", ConditionRoutes)
+app.use("/api/config", ConfigRoutes)
+app.use("/api/trigger", TriggerRoutes)
 
 app.all("*", (req: Request, res: Response, next: NextFunction) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
