@@ -11,6 +11,7 @@
         <div
           v-if="block"
           :key="block._id"
+          :data-block-id="block._id"
           class="block"
           :style="blockStyle(block._id)"
           @mousedown.stop="startDrag(block._id)"
@@ -145,12 +146,14 @@
           const toPosition = blockPositions.value.get(toBlockId)
           const dropZone = document.querySelector('.block-dropzone')
           const dropZoneRect = dropZone?.getBoundingClientRect()
+          const blockElement = document.querySelector(`[data-block-id="${fromBlockId}"]`) as HTMLElement
 
-          if (fromPosition && toPosition && dropZoneRect) {
-            const x1 = fromPosition.left + (selectedConnector.value.side === 'left' ? 0 : 100)
-            const y1 = fromPosition.top + 29
-            const x2 = toPosition.left + (side === 'left' ? 0 : 100)
-            const y2 = toPosition.top + 29
+          if (fromPosition && toPosition && dropZoneRect && blockElement) {
+            const blockWidth = blockElement.offsetWidth
+            const x1 = fromPosition.left + blockWidth
+            const y1 = fromPosition.top + blockElement.offsetHeight / 2
+            const x2 = toPosition.left
+            const y2 = toPosition.top + blockElement.offsetHeight / 2
 
             lines.value.push({
               fromBlockId,
@@ -177,12 +180,14 @@
         lines.value = lines.value.map(line => {
           const fromPosition = blockPositions.value.get(line.fromBlockId)
           const toPosition = blockPositions.value.get(line.toBlockId)
+          const blockElement = document.querySelector(`[data-block-id="${line.fromBlockId}"]`) as HTMLElement
 
-          if (fromPosition && toPosition) {
-            const x1 = fromPosition.left + (line.side === 'left' ? 0 : 100)
-            const y1 = fromPosition.top + 29
-            const x2 = toPosition.left + (line.side === 'left' ? 0 : 100)
-            const y2 = toPosition.top + 29
+          if (fromPosition && toPosition && blockElement) {
+            const blockWidth = blockElement.offsetWidth
+            const x1 = fromPosition.left + blockWidth
+            const y1 = fromPosition.top + blockElement.offsetHeight / 2
+            const x2 = toPosition.left
+            const y2 = toPosition.top + blockElement.offsetHeight / 2
 
             return {
               ...line,
