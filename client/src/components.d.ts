@@ -7,14 +7,10 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    ActionsList: typeof import('./components/ActionsList.vue')['default']
-    ConditionsList: typeof import('./components/ConditionsList.vue')['default']
-    EditableField: typeof import('./components/EditableField.vue')['default']
-    NavBar: typeof import('./components/NavBar.vue')['default']
+    AppFooter: typeof import('./components/AppFooter.vue')['default']
+    Home: typeof import('./components/Home.vue')['default']
+    List: typeof import('./components/List.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    Rule: typeof import('./components/Rule.vue')['default']
-    SideBar: typeof import('./components/SideBar.vue')['default']
-    Test: typeof import('./pages/Test.vue')['default']
   }
 }

@@ -44,12 +44,12 @@ export const getRuleById = catchAsync(
 );
 
 export const updateRuleById = [
-  validateRule,
+  // validateRule,
   catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const updatedRule = await RuleModel.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true, runValidators: true }
+      // { new: true, runValidators: true }
     ).populate('triggers conditions actions onFailure config');
 
     if (!updatedRule) {

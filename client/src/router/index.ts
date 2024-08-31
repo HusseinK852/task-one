@@ -1,39 +1,26 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeLayout from '@/layouts/default.vue'
-import RuleLayout from '@/layouts/Role.vue'
-import Home from '@/pages/Home.vue'
-import Rule from '@/pages/Rule.vue'
-import AddRule from '@/pages/AddRule.vue'
+import HomeLayouts from '@/layouts/default.vue'
+import HomePage from '@/pages/HomePage.vue'
+import RulePage from '@/pages/RulePage.vue'
 
 const routes = [
   {
     path: '/',
-    redirect: '/rule',
+    redirect: '/rules',
   },
   {
-    path: '/rule',
-    component: HomeLayout,
+    path: '/rules',
+    component: HomeLayouts,
     children: [
       {
         path: '',
         name: 'home',
-        component: Home,
-      },
-      {
-        path: 'add-rule',
-        name: 'add-rule',
-        component: AddRule,
+        component: HomePage,
       },
       {
         path: ':ruleId',
-        component: RuleLayout,
-        children: [
-          {
-            path: '',
-            name: 'rule',
-            component: Rule,
-          },
-        ],
+        name: 'rule',
+        component: RulePage,
       },
     ],
   },

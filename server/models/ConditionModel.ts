@@ -4,10 +4,6 @@ import type { Condition } from "../types/rules";
 
 // Mongoose Schema for Condition
 const ConditionSchema = new Schema<Condition>({
-  name: {
-    type: String,
-    required: true,
-  },
   description: {
     type: String,
   },
@@ -28,10 +24,6 @@ const ConditionSchema = new Schema<Condition>({
 
 // Joi Validation Schema for Condition
 const conditionSchemaJoi = Joi.object({
-  name: Joi.string().required().messages({
-    "string.base": "Condition name must be a string",
-    "string.empty": "Condition name is required",
-  }),
   description: Joi.string().optional().allow("").messages({
     "string.base": "Description must be a string",
   }),

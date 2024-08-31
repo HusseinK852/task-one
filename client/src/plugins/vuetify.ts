@@ -1,15 +1,17 @@
-// src/plugins/vuetify.ts
-
-// Import required styles
-import '@mdi/font/css/materialdesignicons.css' // MDI icons
-import 'vuetify/styles' // Vuetify's default styles
-
-// Create Vuetify instance with components and directives
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components' // Import all Vuetify components
-import * as directives from 'vuetify/directives' // Import all Vuetify directives
+/**
+ * plugins/vuetify.ts
+ *
+ * Framework documentation: https://vuetifyjs.com
+ */
 
 // Define a custom light theme
+// Styles
+import '@mdi/font/css/materialdesignicons.css'
+import 'vuetify/styles'
+
+// Composables
+import { createVuetify } from 'vuetify'
+
 const myCustomLightTheme = {
   dark: false, // Set the theme to light
   colors: {
@@ -48,14 +50,12 @@ const myCustomLightTheme = {
   },
 }
 
-// Create and configure Vuetify instance with components, directives, and themes
+// https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
 export default createVuetify({
-  components, // Include all Vuetify components
-  directives, // Include all Vuetify directives
   theme: {
-    defaultTheme: 'myCustomLightTheme', // Set the default theme
+    defaultTheme: 'myCustomLightTheme',
     themes: {
-      myCustomLightTheme, // Include the custom light theme
+      myCustomLightTheme, // Register the custom theme
     },
   },
 })

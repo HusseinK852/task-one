@@ -11,6 +11,7 @@ import ActionRoutes from "./routes/ActionRoutes"
 import ConditionRoutes from "./routes/ConditionRoutes"
 import ConfigRoutes from "./routes/ConfigRoutes"
 import TriggerRoutes from "./routes/TriggerRoutes"
+import onFailureRoutes from "./routes/onFailureRoutes"
 
 const app: Application = express();
 
@@ -41,6 +42,7 @@ app.use("/api/action", ActionRoutes)
 app.use("/api/condition", ConditionRoutes)
 app.use("/api/config", ConfigRoutes)
 app.use("/api/trigger", TriggerRoutes)
+app.use("/api/onFailure", onFailureRoutes)
 
 app.all("*", (req: Request, res: Response, next: NextFunction) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
