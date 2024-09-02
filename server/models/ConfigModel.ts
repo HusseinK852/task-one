@@ -11,12 +11,17 @@ const ConfigSchema = new Schema<Config>({
     type: Schema.Types.Mixed,
     required: true,
   },
+  type: {
+    type: String,
+    default: "Config",
+  },
 });
 
 // Joi Validation Schema for Config
 const configSchemaJoi = Joi.object({
   key: Joi.string().required(),
   value: Joi.any().required(),
+  type: Joi.string().default("Config"),
 });
 
 const ConfigModel = mongoose.model<Config>("Config", ConfigSchema);

@@ -1,5 +1,5 @@
 <template>
-  <v-navigation-drawer app permanent width="480">
+  <v-navigation-drawer app permanent style="position: fixed; top: 0; left: 0; height: 100vh;" width="480">
     <v-row style="min-height: 100vh;">
       <v-col class="name-list" cols="4">
         <v-list dense>
@@ -22,12 +22,12 @@
             <draggable
               v-model="getBlocksForSelectedMenu"
               group="blocks"
-              @end="drag=false"
-              @start="drag=true"
+              @end="drag = false"
+              @start="drag = true"
             >
               <div
-                v-for="(block, idx) in getBlocksForSelectedMenu"
-                :key="idx"
+                v-for="(block) in getBlocksForSelectedMenu"
+                :key="block._id"
                 class="block"
                 draggable="true"
               >
@@ -62,6 +62,8 @@
       const configsStore = useConfigsStore()
 
       const selectedMenu = ref('triggers')
+      const drag = ref(false)
+
       const menuItems = [
         { title: 'triggers' },
         { title: 'conditions' },
@@ -78,7 +80,7 @@
         await configsStore.fetchConfigs()
       })
 
-      const blocks = computed(() => ({
+      const blocks = computed<Record<string, any[]>>(() => ({
         triggers: triggersStore.triggers,
         conditions: conditionsStore.conditions,
         actions: actionsStore.actions,
@@ -86,11 +88,12 @@
         config: configsStore.configs,
       }))
 
-      const selectMenu = menuTitle => {
+      const selectMenu = (menuTitle: string) => {
         selectedMenu.value = menuTitle
       }
 
       const getBlocksForSelectedMenu = computed(() => {
+        console.log(blocks.value[selectedMenu.value])
         return blocks.value[selectedMenu.value] || []
       })
 
@@ -99,10 +102,10 @@
         menuItems,
         getBlocksForSelectedMenu,
         selectMenu,
+        drag,
       }
     },
   })
-
 </script>
 
 <style scoped>

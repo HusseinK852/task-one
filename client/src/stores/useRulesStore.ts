@@ -29,7 +29,6 @@ export const useRulesStore = defineStore('rules', {
       try {
         const response = await axios.put<Rule>(`http://localhost:8000/api/rules/${ruleId}`, { enabled })
         if (response.data) {
-          // Optionally, update the rule in the store if needed
           const ruleIndex = this.rules.findIndex(rule => rule._id === ruleId)
           if (ruleIndex !== -1) {
             this.rules[ruleIndex].enabled = enabled
@@ -47,7 +46,7 @@ export const useRulesStore = defineStore('rules', {
       try {
         const response = await axios.get<Rule>(`http://localhost:8000/api/rules/${ruleId}`)
         if (response.data) {
-          return response.data
+          return response.data.data
         } else {
           throw new Error('Unexpected response format')
         }

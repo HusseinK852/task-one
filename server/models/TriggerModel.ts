@@ -17,6 +17,10 @@ const TriggerSchema = new Schema<TriggerDocument>({
     type: String,
     required: true,
   },
+  type: {
+    type: String,
+    default: "Trigger",
+  },
   isActive: {
     type: Boolean,
     default: true,
@@ -45,6 +49,7 @@ const TriggerSchemaJoi = Joi.object({
     "string.base": "EventType must be a string",
     "string.empty": "EventType is required",
   }),
+  type: Joi.string().default("Trigger"),
   isActive: Joi.boolean().default(true),
   createdAt: Joi.date().forbidden().default(() => new Date()),
   updatedAt: Joi.date().default(() => new Date()),

@@ -11,6 +11,10 @@ const ConditionSchema = new Schema<Condition>({
     type: String,
     required: true,
   },
+  type: {
+    type: String,
+    default: "Condition",
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -31,6 +35,7 @@ const conditionSchemaJoi = Joi.object({
     "string.base": "Expression must be a string",
     "string.empty": "Expression is required",
   }),
+  type: Joi.string().default("Condition"),
   createdAt: Joi.date().forbidden().default(() => new Date()),
   updatedAt: Joi.date().default(() => new Date()),
 });

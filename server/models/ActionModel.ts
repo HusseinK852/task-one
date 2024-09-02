@@ -15,6 +15,10 @@ const ActionSchema = new Schema<Action>({
     type: String,
     required: true,
   },
+  type: {
+    type: String,
+    default: "Action",
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -39,6 +43,7 @@ const ActionSchemaJoi = Joi.object({
     "string.base": "Command must be a string",
     "string.empty": "Command is required",
   }),
+  type: Joi.string().default("Action"),
   createdAt: Joi.date().forbidden().default(() => new Date()),
   updatedAt: Joi.date().default(() => new Date()),
 });

@@ -15,6 +15,10 @@ const OnFailureSchema = new Schema<Action>({
     type: String,
     required: true,
   },
+  type: {
+    type: String,
+    default: "OnFailure"
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -39,6 +43,7 @@ const OnFailureSchemaJoi = Joi.object({
     "string.base": "Command must be a string",
     "string.empty": "Command is required",
   }),
+  type: Joi.string().default("OnFailure"),
   createdAt: Joi.date().forbidden().default(() => new Date()),
   updatedAt: Joi.date().default(() => new Date()),
 });
