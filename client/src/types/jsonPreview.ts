@@ -1,8 +1,10 @@
+import type { Block } from './block'
+
 export interface JsonPreview {
     name: string | null;
-    triggers: string[];
-    conditions: string[];
-    actions: string[];
-    onFailure: string[];
-    config: string[];
+    triggers: Block[];
+    conditions: Block[];
+    actions: Block[];
+    onFailure: Block[];
+    config: Block[];
 }

@@ -280,34 +280,35 @@
       }
 
       const initializeData = async () => {
-        console.log(route.params)
-        if (route.params.ruleId === 'add') {
-          jsonPreview.value = {
-            name: null,
-            triggers: [],
-            conditions: [],
-            actions: [],
-            onFailure: [],
-            config: [],
-          }
-        } else {
-          const ruleData = await store.fetchRule(route.params.ruleId)
-          if (ruleData) {
+        if (route.params && typeof route.params.ruleId === 'string') {
+          if (route.params.ruleId === 'add') {
             jsonPreview.value = {
-              name: ruleData.name,
-              triggers: ruleData.triggers,
-              conditions: ruleData.conditions,
-              actions: ruleData.actions,
-              onFailure: ruleData.onFailure,
-              config: ruleData.config,
+              name: null,
+              triggers: [],
+              conditions: [],
+              actions: [],
+              onFailure: [],
+              config: [],
             }
-            droppedBlocks.value = [
-              ...ruleData.triggers,
-              ...ruleData.conditions,
-              ...ruleData.actions,
-              ...ruleData.onFailure,
-              ...ruleData.config,
-            ]
+          } else {
+            const ruleData = await store.fetchRule(route.params.ruleId)
+            if (ruleData) {
+              jsonPreview.value = {
+                name: ruleData.name,
+                triggers: ruleData.triggers,
+                conditions: ruleData.conditions,
+                actions: ruleData.actions,
+                onFailure: ruleData.onFailure,
+                config: ruleData.config,
+              }
+              droppedBlocks.value = [
+                ...ruleData.triggers,
+                ...ruleData.conditions,
+                ...ruleData.actions,
+                ...ruleData.onFailure,
+                ...ruleData.config,
+              ]
+            }
           }
         }
       }

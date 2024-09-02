@@ -41,3 +41,12 @@ export interface Rule {
     config: Config[];
     enabled: boolean;
 }
+
+export interface JsonPreview {
+    name: string | null;
+    triggers: Trigger[];
+    conditions: Condition[];
+    actions: Action[];
+    onFailure: Action[];
+    config: Config[];
+  }
