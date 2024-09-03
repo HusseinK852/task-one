@@ -1,144 +1,89 @@
 <template>
-  <v-container>
-    <List class="side-bar" />
-    <draggable
-      v-model="droppedBlocks"
-      class="block-dropzone"
-      group="blocks"
-      @end="handleDragEnd"
-    >
-      <template v-for="block in droppedBlocks">
-        <div
-          v-if="block"
-          :key="block._id"
-          class="block"
-          :data-block-id="block._id"
-          :style="blockStyle(block._id)"
-          @mousedown.stop="startDrag(block._id)"
-        >
-          <div
-            class="left-connector"
-            @mousedown.stop="handleConnectorClick(block._id, 'left')"
+  <div>
+    <v-container>
+      <List class="side-bar" />
+      <draggable
+        v-model="droppedBlocks"
+        class="block-dropzone"
+        group="blocks"
+        @change="updateLinesOnChange"
+        @end="handleDragEnd"
+      >
+        <template v-for="block in droppedBlocks" :key="block._id">
+          <BlockComponent
+            :block="block"
+            :style="blockStyle(block)"
+            @connector-click="handleConnectorClick"
+            @start-drag="startDrag"
           />
-          {{ block.name }}
-          <div
-            class="right-connector"
-            @mousedown.stop="handleConnectorClick(block._id, 'right')"
-          />
-        </div>
-      </template>
-    </draggable>
-    <svg class="lines">
-      <line
-        v-for="(line, index) in lines"
-        :key="index"
-        stroke="black"
-        stroke-width="2"
-        :x1="line.x1"
-        :x2="line.x2"
-        :y1="line.y1"
-        :y2="line.y2"
-      />
-    </svg>
-    <div v-if="isDragging" class="delete-zone">
-      Drop here to delete
-    </div>
-    <json-preview :json-preview="jsonPreview" />
-  </v-container>
+        </template>
+      </draggable>
+      <DeleteZone v-if="isDragging" />
+      <json-preview :json-preview="jsonPreview" />
+      <RuleOptions class="rule-options" :rule="jsonPreview" />
+    </v-container>
+  </div>
 </template>
 
 <script lang="ts">
-  import { CSSProperties, defineComponent, ref, watch } from 'vue'
+  import { defineComponent, nextTick, ref, watch } from 'vue'
   import { VueDraggableNext } from 'vue-draggable-next'
   import { useRoute } from 'vue-router'
   import { useRulesStore } from '../stores/useRulesStore'
-  import type { Block, BlockPosition } from '../types/block'
-  import type { Line } from '../types/line'
+  import type { RuleNode } from '../types/rule'
   import type { JsonPreview } from '../types/jsonPreview'
+  import LeaderLine from 'leader-line-new'
 
   export default defineComponent({
     components: {
       draggable: VueDraggableNext,
     },
     setup () {
-      const route = useRoute()
+      const route = useRoute<{ ruleId: string }>()
       const store = useRulesStore()
 
-      const droppedBlocks = ref<Block[]>([])
+      const droppedBlocks = ref<RuleNode[]>([])
       const isDragging = ref(false)
       const currentBlockId = ref<string | null>(null)
-      const blockPositions = ref<Map<string, BlockPosition>>(new Map())
-      const lines = ref<Line[]>([])
-      const selectedConnector = ref<{ blockId: string; side: 'left' | 'right' } | null>(null)
-
+      const blockPositions = ref<Map<string, { top: number; left: number }>>(new Map())
+      const startConnector = ref<{ blockId: string; side: 'left' | 'right' } | null>(null)
+      const endConnector = ref<{ blockId: string; side: 'left' | 'right' } | null>(null)
       const jsonPreview = ref<JsonPreview>({
         name: null,
-        triggers: [],
-        conditions: [],
-        actions: [],
-        onFailure: [],
-        config: [],
+        description: 'test',
+        nodes: [],
+        connections: [],
       })
+
+      const lineReferences = ref<Map<string, LeaderLine[]>>(new Map())
+
+      watch(blockPositions, () => {
+        updateAllLines()
+      }, { deep: true })
 
       const handleDragEnd = (event: any) => {
         if (!event.item || !currentBlockId.value) return
 
-        const deleteZone = document.querySelector('.delete-zone')
-        const deleteZoneRect = deleteZone?.getBoundingClientRect()
-
-        if (
-          deleteZoneRect &&
+        const deleteZoneRect = document.querySelector('.delete-zone')?.getBoundingClientRect()
+        const isInDeleteZone = deleteZoneRect && event.originalEvent.clientX > deleteZoneRect.left &&
+          event.originalEvent.clientX < deleteZoneRect.right &&
           event.originalEvent.clientY > deleteZoneRect.top &&
-          event.originalEvent.clientY < deleteZoneRect.bottom &&
-          event.originalEvent.clientX > deleteZoneRect.left &&
-          event.originalEvent.clientX < deleteZoneRect.right
-        ) {
-          const blockToDelete = droppedBlocks.value.find(
-            block => block._id === currentBlockId.value
-          )
+          event.originalEvent.clientY < deleteZoneRect.bottom
 
-          if (blockToDelete) {
-            removeBlockFromJsonPreview(blockToDelete)
-          }
-
-          droppedBlocks.value = droppedBlocks.value.filter(
-            block => block._id !== currentBlockId.value
-          )
-          blockPositions.value.delete(currentBlockId.value)
-          lines.value = lines.value.filter(
-            line =>
-              line.fromBlockId !== currentBlockId.value &&
-              line.toBlockId !== currentBlockId.value
-          )
+        if (isInDeleteZone) {
+          removeBlockAndConnections(currentBlockId.value)
         } else {
-          const dropZoneRect = event.from.getBoundingClientRect()
-          const newBlock = event.item as HTMLElement
-          const top =
-            event.originalEvent.clientY - dropZoneRect.top - newBlock.offsetHeight / 2
-          const left =
-            event.originalEvent.clientX - dropZoneRect.left - newBlock.offsetWidth / 2
-
-          blockPositions.value.set(currentBlockId.value, { top, left })
-
-          const addedBlock = droppedBlocks.value.find(
-            block => block._id === currentBlockId.value
-          )
-          if (addedBlock) {
-            addBlockToJsonPreview(addedBlock)
-          }
+          updateBlockPosition(event)
         }
 
-        updateLinesPositions()
-
-        currentBlockId.value = null
-        isDragging.value = false
+        resetDragState()
       }
 
-      const blockStyle = (blockId: string): CSSProperties => {
-        const position = blockPositions.value.get(blockId)
+      const blockStyle = (block: RuleNode) => {
+        const position = blockPositions.value.get(block._id || '')
         return {
-          top: `${position?.top || 0}px`,
-          left: `${position?.left || 0}px`,
+          top: `${block.additionalInfo.layoutY || position?.top || 0}px`,
+          left: `${block.additionalInfo.layoutX || position?.left || 0}px`,
           position: 'absolute',
         }
       }
@@ -149,173 +94,220 @@
       }
 
       const handleConnectorClick = (blockId: string, side: 'left' | 'right') => {
-        if (selectedConnector.value) {
-          const fromBlockId = selectedConnector.value.blockId
-          const toBlockId = blockId
-
-          const fromPosition = blockPositions.value.get(fromBlockId)
-          const toPosition = blockPositions.value.get(toBlockId)
-          const dropZone = document.querySelector('.block-dropzone')
-          const dropZoneRect = dropZone?.getBoundingClientRect()
-          const blockElement = document.querySelector(
-            `[data-block-id="${fromBlockId}"]`
-          ) as HTMLElement
-
-          if (fromPosition && toPosition && dropZoneRect && blockElement) {
-            const blockWidth = blockElement.offsetWidth
-            const x1 = fromPosition.left + blockWidth
-            const y1 = fromPosition.top + blockElement.offsetHeight / 2
-            const x2 = toPosition.left
-            const y2 = toPosition.top + blockElement.offsetHeight / 2
-
-            lines.value.push({
-              fromBlockId,
-              toBlockId,
-              side,
-              x1: x1 + dropZoneRect.left,
-              y1: y1 + dropZoneRect.top,
-              x2: x2 + dropZoneRect.left,
-              y2: y2 + dropZoneRect.top,
-            })
+        if (!startConnector.value) {
+          if (side === 'right') {
+            startConnector.value = { blockId, side }
+          } else {
+            console.warn('Start connector must be on the right side.')
           }
-
-          selectedConnector.value = null
         } else {
-          selectedConnector.value = { blockId, side }
-        }
-      }
-
-      const updateLinesPositions = () => {
-        const dropZoneRect =
-          document.querySelector('.block-dropzone')?.getBoundingClientRect()
-
-        if (!dropZoneRect) return
-
-        lines.value = lines.value.map(line => {
-          const fromPosition = blockPositions.value.get(line.fromBlockId)
-          const toPosition = blockPositions.value.get(line.toBlockId)
-          const blockElement = document.querySelector(
-            `[data-block-id="${line.fromBlockId}"]`
-          ) as HTMLElement
-
-          if (fromPosition && toPosition && blockElement) {
-            const blockWidth = blockElement.offsetWidth
-            const x1 = fromPosition.left + blockWidth
-            const y1 = fromPosition.top + blockElement.offsetHeight / 2
-            const x2 = toPosition.left
-            const y2 = toPosition.top + blockElement.offsetHeight / 2
-
-            return {
-              ...line,
-              x1: x1 + dropZoneRect.left,
-              y1: y1 + dropZoneRect.top,
-              x2: x2 + dropZoneRect.left,
-              y2: y2 + dropZoneRect.top,
+          if (side === 'left') {
+            endConnector.value = { blockId, side }
+            console.log(endConnector.value.side)
+            if (startConnector.value.side === 'right' && endConnector.value.side === 'left') {
+              addLineConnection()
+            } else {
+              console.warn('Connections must go from right to left only.')
             }
+          } else {
+            console.warn('End connector must be on the left side.')
           }
 
-          return line
-        })
-      }
-
-      const removeBlockFromJsonPreview = (block: Block) => {
-        switch (block.type) {
-          case 'Trigger':
-            jsonPreview.value.triggers = jsonPreview.value.triggers.filter(
-              item => item._id !== block._id
-            )
-            break
-          case 'Condition':
-            jsonPreview.value.conditions = jsonPreview.value.conditions.filter(
-              item => item._id !== block._id
-            )
-            break
-          case 'Action':
-            jsonPreview.value.actions = jsonPreview.value.actions.filter(
-              item => item._id !== block._id
-            )
-            break
-          case 'OnFailure':
-            jsonPreview.value.onFailure = jsonPreview.value.onFailure.filter(
-              item => item._id !== block._id
-            )
-            break
-          case 'Config':
-            jsonPreview.value.config = jsonPreview.value.config.filter(
-              item => item._id !== block._id
-            )
-            break
-          default:
-            break
+          startConnector.value = null
+          endConnector.value = null
         }
       }
 
-      const addBlockToJsonPreview = (block: Block) => {
-        let isBlockAdded = false
+      const updateBlockPosition = async (event: any) => {
+        const dropZoneRect = event.from.getBoundingClientRect()
+        const newBlock = event.item as HTMLElement
+        const top = event.originalEvent.clientY - dropZoneRect.top - newBlock.offsetHeight / 2
+        const left = event.originalEvent.clientX - dropZoneRect.left - newBlock.offsetWidth / 2
 
-        switch (block.type) {
-          case 'Trigger':
-            isBlockAdded = jsonPreview.value.triggers.some(item => item._id === block._id)
-            if (!isBlockAdded) jsonPreview.value.triggers.push(block)
-            break
-          case 'Condition':
-            isBlockAdded = jsonPreview.value.conditions.some(item => item._id === block._id)
-            if (!isBlockAdded) jsonPreview.value.conditions.push(block)
-            break
-          case 'Action':
-            isBlockAdded = jsonPreview.value.actions.some(item => item._id === block._id)
-            if (!isBlockAdded) jsonPreview.value.actions.push(block)
-            break
-          case 'OnFailure':
-            isBlockAdded = jsonPreview.value.onFailure.some(item => item._id === block._id)
-            if (!isBlockAdded) jsonPreview.value.onFailure.push(block)
-            break
-          case 'Config':
-            isBlockAdded = jsonPreview.value.config.some(item => item._id === block._id)
-            if (!isBlockAdded) jsonPreview.value.config.push(block)
-            break
-          default:
-            break
+        const currentBlock = droppedBlocks.value.find(block => block._id === currentBlockId.value)
+        if (currentBlock) {
+          currentBlock.additionalInfo.layoutY = top
+          currentBlock.additionalInfo.layoutX = left
+        }
+
+        blockPositions.value.set(currentBlockId.value!, { top, left })
+
+        if (currentBlock) {
+          addBlockToJsonPreview(currentBlock)
+        }
+
+        await nextTick()
+
+        updateAllLines()
+      }
+
+      const addLineConnection = async () => {
+        if (!startConnector.value || !endConnector.value) {
+          console.warn('Both connectors need to be selected to create a line.')
+          return
+        }
+
+        const fromBlockId = startConnector.value.blockId
+        const toBlockId = endConnector.value.blockId
+
+        if (fromBlockId === toBlockId) {
+          console.warn('Cannot connect the same block to itself.')
+          return
+        }
+
+        const fromBlockIndex = droppedBlocks.value.findIndex(block => block._id === fromBlockId)
+        const toBlockIndex = droppedBlocks.value.findIndex(block => block._id === toBlockId)
+
+        if (fromBlockIndex === -1 || toBlockIndex === -1) {
+          console.warn('One or both blocks not found.')
+          return
+        }
+
+        // تحقق من عدم وجود وصلة مشابهة بالفعل
+        const existingConnection = jsonPreview.value.connections.find(connection =>
+          connection.fromIndex === fromBlockIndex &&
+          connection.toIndex === toBlockIndex &&
+          connection.type === 'connection'
+        )
+
+        if (existingConnection) {
+          console.warn('Connection already exists.')
+          return
+        }
+
+        jsonPreview.value.connections.push({
+          fromIndex: fromBlockIndex,
+          toIndex: toBlockIndex,
+          type: 'connection',
+          _id: crypto.randomUUID(), // إضافة معرّف فريد لكل وصلة
+        })
+
+        const fromBlockElement = document.querySelector(`[data-block-id="${fromBlockId}"] .right-connector`) as HTMLElement
+        const toBlockElement = document.querySelector(`[data-block-id="${toBlockId}"] .left-connector`) as HTMLElement
+
+        if (fromBlockElement && toBlockElement) {
+          const line = new LeaderLine(
+            fromBlockElement,
+            toBlockElement,
+            {
+              startPlug: 'disc',
+              endPlug: 'arrow',
+              color: 'gray',
+              startSocket: 'right',
+              endSocket: 'left',
+            }
+          )
+
+          if (!lineReferences.value.has(fromBlockId)) {
+            lineReferences.value.set(fromBlockId, [])
+          }
+          lineReferences.value.get(fromBlockId)!.push(line)
+
+          if (!lineReferences.value.has(toBlockId)) {
+            lineReferences.value.set(toBlockId, [])
+          }
+          lineReferences.value.get(toBlockId)!.push(line)
+        } else {
+          console.warn('Could not find connectors for the blocks.')
+        }
+      }
+
+      const removeBlockAndConnections = (blockId: string) => {
+        // Remove the block from the preview and block list
+        jsonPreview.value.nodes = jsonPreview.value.nodes.filter(node => node._id !== blockId)
+        droppedBlocks.value = droppedBlocks.value.filter(block => block._id !== blockId)
+
+        // Remove connections related to this block
+        jsonPreview.value.connections = jsonPreview.value.connections.filter(
+          connection => {
+            const fromBlock = droppedBlocks.value[connection.fromIndex]?._id
+            const toBlock = droppedBlocks.value[connection.toIndex]?._id
+
+            // حافظ على الوصلة إذا كانت البلوك المقابل لم يحذف
+            return fromBlock !== blockId && toBlock !== blockId
+          }
+        )
+
+        // Remove lines associated with the block
+        if (lineReferences.value.has(blockId)) {
+          const lines = lineReferences.value.get(blockId)
+          lines?.forEach(line => {
+            try {
+              if (line) {
+                line.remove()
+              }
+            } catch (error) {
+              console.warn(`Failed to remove line for blockId: ${blockId}`, error)
+            }
+          })
+          lineReferences.value.delete(blockId)
+        }
+
+        blockPositions.value.delete(blockId)
+      }
+
+      const resetDragState = () => {
+        currentBlockId.value = null
+        isDragging.value = false
+      }
+
+      const addBlockToJsonPreview = (block: RuleNode) => {
+        if (!jsonPreview.value.nodes.some(node => node._id === block._id)) {
+          jsonPreview.value.nodes.push(block)
         }
       }
 
       const initializeData = async () => {
-        if (route.params && typeof route.params.ruleId === 'string') {
-          if (route.params.ruleId === 'add') {
-            jsonPreview.value = {
-              name: null,
-              triggers: [],
-              conditions: [],
-              actions: [],
-              onFailure: [],
-              config: [],
-            }
-          } else {
-            const ruleData = await store.fetchRule(route.params.ruleId)
-            if (ruleData) {
-              jsonPreview.value = {
-                name: ruleData.name,
-                triggers: ruleData.triggers,
-                conditions: ruleData.conditions,
-                actions: ruleData.actions,
-                onFailure: ruleData.onFailure,
-                config: ruleData.config,
+        if (route.params.ruleId === 'add') {
+          jsonPreview.value = { name: null, description: 'null', nodes: [], connections: [] }
+        } else {
+          const ruleData = await store.fetchRule(route.params.ruleId)
+          if (ruleData) {
+            jsonPreview.value = { name: ruleData.name, description: ruleData.description, nodes: ruleData.nodes, connections: ruleData.connections }
+            droppedBlocks.value = [...ruleData.nodes]
+
+            // Update block positions
+            ruleData.nodes.forEach(node => {
+              blockPositions.value.set(node._id, { top: node.additionalInfo.layoutY, left: node.additionalInfo.layoutX })
+            })
+
+            // Add lines between blocks
+            await nextTick()
+            ruleData.connections.forEach(connection => {
+              const fromBlockId = droppedBlocks.value[connection.fromIndex]?._id
+              const toBlockId = droppedBlocks.value[connection.toIndex]?._id
+
+              if (toBlockId) {
+                startConnector.value = { blockId: fromBlockId, side: 'right' }
+                endConnector.value = { blockId: toBlockId, side: 'left' }
+                addLineConnection()
               }
-              droppedBlocks.value = [
-                ...ruleData.triggers,
-                ...ruleData.conditions,
-                ...ruleData.actions,
-                ...ruleData.onFailure,
-                ...ruleData.config,
-              ]
-            }
+            })
           }
         }
       }
 
-      initializeData()
+      const updateAllLines = () => {
+        lineReferences.value.forEach((lines, blockId) => {
+          if (lines) {
+            lines.forEach(line => {
+              if (line) {
+                try {
+                  line.position()
+                } catch (error) {
+                  console.warn(`Failed to update line for blockId: ${blockId}`, error)
+                }
+              }
+            })
+          }
+        })
+      }
 
-      watch(droppedBlocks, updateLinesPositions, { deep: true })
+      const updateLinesOnChange = () => {
+        updateAllLines()
+      }
+
+      initializeData()
 
       return {
         droppedBlocks,
@@ -324,8 +316,8 @@
         startDrag,
         handleConnectorClick,
         isDragging,
-        lines,
         jsonPreview,
+        updateLinesOnChange,
       }
     },
   })
@@ -337,64 +329,12 @@
   height: 85vh;
   position: relative;
 }
-
-.block {
-  background-color: red;
-  padding: 20px 10px;
+.rule-options {
+  position: fixed;
+  top: 86%;
+  left: 86%;
+  padding: 10px;
   border-radius: 5px;
-  color: #000;
-  cursor: move;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  word-wrap: break-word;
-  white-space: normal;
-  position: absolute;
-  z-index: 10;
-}
-
-.left-connector,
-.right-connector {
-  position: absolute;
-  width: 14px;
-  height: 14px;
-  background: gray;
-  border-radius: 50%;
-  z-index: 11;
-  cursor: pointer;
-}
-
-.left-connector {
-  left: -7px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.right-connector {
-  right: -7px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.delete-zone {
-  border: 2px solid red;
-  background-color: #f8d7da;
-  color: #721c24;
-  text-align: center;
-  height: 10vh;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.lines {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 1;
+  z-index: 99;
 }
 </style>

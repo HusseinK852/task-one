@@ -12,6 +12,8 @@
     "@vueuse/core": "^11.0.3",
     "axios": "^1.7.5",
     "core-js": "^3.37.1",
+    "leader-line": "^1.0.7",
+    "leader-line-new": "^1.1.9",
     "roboto-fontface": "*",
     "sortablejs": "^1.15.2",
     "uuid": "^10.0.0",

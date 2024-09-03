@@ -68,7 +68,7 @@ export const useRulesStore = defineStore('rules', {
         throw new Error('Error creating rule')
       }
     },
-    async editRule (ruleId: string, updatedRule: Rule) {
+    async updateRule (ruleId: string, updatedRule: Rule) {
       try {
         const response = await axios.put<Rule>(`http://localhost:8000/api/rules/${ruleId}`, updatedRule)
         if (response.data) {
@@ -87,6 +87,15 @@ export const useRulesStore = defineStore('rules', {
       } catch (error) {
         console.error('Error deleting rule:', error)
         throw new Error('Error deleting rule')
+      }
+    },
+    async validateRule (rule: Rule) {
+      try {
+        const response = await axios.post('http://localhost:8000/api/rules/validate', rule)
+        return response.data
+      } catch (error) {
+        console.error('Error validating rule:', error)
+        throw new Error('Error validating rule')
       }
     },
   },

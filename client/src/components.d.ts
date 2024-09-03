@@ -8,12 +8,15 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppFooter: typeof import('./components/AppFooter.vue')['default']
+    BlockComponent: typeof import('./components/BlockComponent.vue')['default']
+    DeleteZone: typeof import('./components/DeleteZone.vue')['default']
     Home: typeof import('./components/Home.vue')['default']
     JsonPreview: typeof import('./components/JsonPreview.vue')['default']
     List: typeof import('./components/List.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     Rule: typeof import('./components/Rule.vue')['default']
+    RuleOptions: typeof import('./components/RuleOptions.vue')['default']
     RulePreview: typeof import('./components/RulePreview.vue')['default']
   }
 }

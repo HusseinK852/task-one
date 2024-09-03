@@ -1,6 +1,11 @@
 <template>
-  <v-navigation-drawer app permanent style="position: fixed; top: 0; left: 0; height: 100vh;" width="480">
-    <v-row style="min-height: 100vh;">
+  <v-navigation-drawer
+    app
+    permanent
+    style="position: fixed; top: 0; left: 0; height: 100vh"
+    width="480"
+  >
+    <v-row style="min-height: 100vh">
       <v-col class="name-list" cols="4">
         <v-list dense>
           <v-list-item
@@ -8,14 +13,16 @@
             :key="index"
             @click="selectMenu(item.title)"
           >
-            <v-list-item-title :class="{'active-item': selectedMenu === item.title}">
+            <v-list-item-title
+              :class="{ 'active-item': selectedMenu === item.title }"
+            >
               {{ item.title }}
             </v-list-item-title>
           </v-list-item>
         </v-list>
       </v-col>
 
-      <v-col cols="8" style="margin-left: 33%;">
+      <v-col cols="8" style="margin-left: 33%">
         <v-card class="container-items" flat>
           <v-card-title>{{ selectedMenu }}</v-card-title>
           <v-card-subtitle>
@@ -26,7 +33,7 @@
               @start="drag = true"
             >
               <div
-                v-for="(block) in getBlocksForSelectedMenu"
+                v-for="block in getBlocksForSelectedMenu"
                 :key="block._id"
                 class="block"
                 draggable="true"
@@ -44,22 +51,15 @@
 <script lang="ts">
   import { computed, defineComponent, onMounted, ref } from 'vue'
   import { VueDraggableNext } from 'vue-draggable-next'
-  import { useTriggersStore } from '../stores/useTriggersStore'
-  import { useConditionsStore } from '../stores/useConditionsStore'
-  import { useActionsStore } from '../stores/useActionsStore'
-  import { useOnFailureStore } from '../stores/useOnFailureStore'
-  import { useConfigsStore } from '../stores/useConfigStore'
+  import { useRuleNodeStore } from '../stores/useRuleNodeStore'
+  import type { RuleNode } from '../types/rule'
 
   export default defineComponent({
     components: {
       draggable: VueDraggableNext,
     },
     setup () {
-      const triggersStore = useTriggersStore()
-      const conditionsStore = useConditionsStore()
-      const actionsStore = useActionsStore()
-      const onFailureStore = useOnFailureStore()
-      const configsStore = useConfigsStore()
+      const RuleNodeStore = useRuleNodeStore()
 
       const selectedMenu = ref('triggers')
       const drag = ref(false)
@@ -73,27 +73,40 @@
       ]
 
       onMounted(async () => {
-        await triggersStore.fetchTriggers()
-        await conditionsStore.fetchConditions()
-        await actionsStore.fetchActions()
-        await onFailureStore.fetchOnFailure()
-        await configsStore.fetchConfigs()
+        await RuleNodeStore.fetchRuleNodes()
       })
 
-      const blocks = computed<Record<string, any[]>>(() => ({
-        triggers: triggersStore.triggers,
-        conditions: conditionsStore.conditions,
-        actions: actionsStore.actions,
-        onFailure: onFailureStore.onFailures,
-        config: configsStore.configs,
-      }))
+      const blocks = computed(() => {
+        const categorizedBlocks: Record<string, RuleNode[]> = {
+          triggers: [],
+          conditions: [],
+          actions: [],
+          onFailure: [],
+          config: [],
+        }
+
+        RuleNodeStore.ruleNodes.forEach((block: RuleNode) => {
+          if (block.type === 'trigger') {
+            categorizedBlocks.triggers.push(block)
+          } else if (block.type === 'condition') {
+            categorizedBlocks.conditions.push(block)
+          } else if (block.type === 'action') {
+            categorizedBlocks.actions.push(block)
+          } else if (block.type === 'onFailure') {
+            categorizedBlocks.onFailure.push(block)
+          } else if (block.type === 'config') {
+            categorizedBlocks.config.push(block)
+          }
+        })
+
+        return categorizedBlocks
+      })
 
       const selectMenu = (menuTitle: string) => {
         selectedMenu.value = menuTitle
       }
 
       const getBlocksForSelectedMenu = computed(() => {
-        console.log(blocks.value[selectedMenu.value])
         return blocks.value[selectedMenu.value] || []
       })
 

@@ -1,10 +1,10 @@
-import type { Block } from './block'
+import type { Connection, RuleNode } from './rule'
 
 export interface JsonPreview {
-    name: string | null;
-    triggers: Block[];
-    conditions: Block[];
-    actions: Block[];
-    onFailure: Block[];
-    config: Block[];
+  _id?: string;
+  name: string | null;
+  description: string;
+  nodes: RuleNode[];
+  connections: Connection[];
+  enabled?: boolean;
 }

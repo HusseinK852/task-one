@@ -19,8 +19,6 @@
       <v-card class="w-100 pa-4" @click="viewRule(rule._id)">
         <v-row justify="space-between">
           <v-col cols="2">{{ rule.name }}</v-col>
-          <v-col cols="3">{{ rule.triggers[0].name }}</v-col>
-          <v-col cols="2">{{ rule.actions[0].name }}</v-col>
           <v-col class="text-right" cols="2">
             <v-btn
               v-if="!rule.enabled"
@@ -29,11 +27,7 @@
             >
               Enable
             </v-btn>
-            <v-btn
-              v-else
-              text
-              @click.stop="toggleRule(index, false)"
-            >
+            <v-btn v-else text @click.stop="toggleRule(index, false)">
               Disable
             </v-btn>
           </v-col>
@@ -85,7 +79,10 @@
           await rulesStore.toggleRule(rule._id, enable)
           rule.enabled = enable
         } catch (error) {
-          console.error(`Failed to ${enable ? 'enable' : 'disable'} rule:`, error)
+          console.error(
+            `Failed to ${enable ? 'enable' : 'disable'} rule:`,
+            error
+          )
         }
       }
 

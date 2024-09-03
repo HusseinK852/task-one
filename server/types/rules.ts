@@ -1,45 +1,29 @@
 import { Document } from "mongoose";
 
-export interface Condition extends Document {
-    name: string;
-    description?: string;
-    expression: string;
-    type: string;
-    createdAt: Date;
-    updatedAt: Date;
-}
-
-export interface Trigger extends Document {
+export interface RuleNode extends Document {
+  type: string;
   name: string;
-  description?: string;
-  eventType: string;
-  type: string;
-  createdAt: Date;
-  updatedAt: Date;
-  isActive: boolean;
+  debugMode: boolean;
+  singletonMode: boolean;
+  queueName: string | null;
+  configurationVersion: number;
+  configuration: any;
+  additionalInfo: {
+    description: string;
+    layoutX: number;
+    layoutY: number;
+  };
 }
 
-export interface Action extends Document {
-  name: string;
-  description?: string;
-  command: string;
-  type: string;
-  createdAt: Date;
-  updatedAt: Date;
+export interface connections extends Document {
+  fromIndex: number;
+  toIndex: number;
+  type: boolean | string;
 }
-
-export interface Config extends Document {
-  key: string;
-  value: any;
-  type: string;
-}
-
 export interface Rule extends Document {
   name: string;
-  triggers: Trigger[];
-  conditions: Condition[];
-  actions: Action[];
-  onFailure: Action[];
-  config: Config[];
+  description: string;
+  nodes: RuleNode[];
+  connections: connections[];
   enabled: boolean;
 }
